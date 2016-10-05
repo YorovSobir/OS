@@ -32,7 +32,7 @@ void main(void)
     enable_ints();
     
     pit(0xFFFF);
-
+    
     
     while (1);
 }

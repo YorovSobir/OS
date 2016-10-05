@@ -19,6 +19,7 @@ handler_common:
 	pushq %r14
 	pushq %r15
 	movq %rsp, %rdi
+	cld
 	call int_handler
 	popq %r15
 	popq %r14
