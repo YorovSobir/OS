@@ -12,14 +12,16 @@ static void qemu_gdb_hang(void)
 #include "serial_port.h"
 #include "interrupt.h"
 #include "pit.h"
+#include "memory_map.h"
 
 void main(void)
 {
 
+
 	qemu_gdb_hang();
 
 	disable_ints();
-
+/*
 	init_serial();
 	print_serial("Serial port init.. OK \n");
     
@@ -30,8 +32,9 @@ void main(void)
     init_icontr();
 
     enable_ints();
-    
-    pit(0xFFFF);
+ */  
+    memory_info();
+    //pit(0xFFFF);
     
     
     while (1);

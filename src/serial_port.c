@@ -35,6 +35,36 @@ void print_serial(const char * s)
 
 }
 
+void print_num(uint64_t num) 
+{
+    char str_num[20];
+    int strlen = 0;
+    
+    for (; num > 0 && strlen < 20; num /= 10, ++strlen)
+    {
+        str_num[strlen] = '0' + (num % 10);
+    }
+
+    str_num[strlen] = '0';
+    ++strlen;
+    serial_write(str_num, strlen);
+}
+
+void serial_write(const char *buf, uint64_t size)
+{
+	uint64_t m = 0;
+	
+	while(m < size)
+	{
+		if(in8(0x3fd) & 32)
+		{
+			out8(0x3f8,*(buf+m)); ++m;
+		}
+
+	}
+}
+
+
 void print_inter(uint64_t t)
 {
 	switch(t){
