@@ -18,7 +18,7 @@ static node_t* root;
 static struct spinlock lock;
 
 void init_fs() {
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     root = (node_t*) mem_alloc(sizeof(node_t));
     root->name = (char*) mem_alloc((sizeof(char) * 2));
     memcpy(root->name, ".", 2);
@@ -31,7 +31,7 @@ void init_fs() {
     for (int i = 0; i < MAX_DESC_COUNT; i++) {
         desc[i].empty = 1;
     }
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
 }
 
 static void print_dir(node_t *root, char *tab){
@@ -56,10 +56,10 @@ static void print_dir(node_t *root, char *tab){
 
 
 void print_fs(){
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     node_t* temp = root;
     print_dir(temp, "");
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
 }
 
 static void remove_dir(node_t* root){
@@ -86,10 +86,10 @@ static void remove_dir(node_t* root){
 }
 
 void remove_fs(){
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     node_t *temp = root;
     remove_dir(temp);
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
 }
 
 // split path by "/"
@@ -238,10 +238,11 @@ static node_t* create_node(char** paths, int count, enum obj_type type){
 }
 
 int open(const char *pathname, int flags){
-    spin_lock(&lock);
+
+    int enable = spin_lock_irqsave(&lock);
     if (strlen(pathname) == 0){
         printf("Invalid path!\n");
-        spin_unlock(&lock);
+        spin_unlock_irqrestore(&lock, enable);
         return -1;
     }
 
@@ -257,7 +258,7 @@ int open(const char *pathname, int flags){
 
     if (fd == -1){
         printf("Cannot open file, no mem_free descriptor\n");
-        spin_unlock(&lock);
+        spin_unlock_irqrestore(&lock, enable);
         return -1;
     }
 
@@ -278,33 +279,33 @@ int open(const char *pathname, int flags){
 
     if (fnode == NULL){
         fdesk->empty = 1;
-        spin_unlock(&lock);
+        spin_unlock_irqrestore(&lock, enable);
         return -1;
     }
 
     fdesk->file_node = fnode;
     fdesk->current_pos = 0;
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
     return fd;
 
 }
 
 int close(int fd){
-    spin_unlock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     desc[fd].empty = 1;
     desc[fd].current_pos = 0;
     desc[fd].file_node = NULL;
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
     return 0;
 }
 
 int read(int fd, void *buf, size_t count){
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     node_t* fnode = desc[fd].file_node;
 
     if (fnode == NULL){
         printf("Cannot read from file\n");
-        spin_unlock(&lock);
+        spin_unlock_irqrestore(&lock, enable);
         return -1;
     }
 
@@ -321,17 +322,17 @@ int read(int fd, void *buf, size_t count){
         ++i;
     }
     dst[i] = '\0';
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
     return cur_pos - start;
 }
 
 int write(int fd, const void *buf, size_t count){
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     node_t* fnode = desc[fd].file_node;
 
     if (fnode == NULL){
         printf("Cannot write file\n");
-        spin_unlock(&lock);
+        spin_unlock_irqrestore(&lock, enable);
         return -1;
     }
 
@@ -358,12 +359,12 @@ int write(int fd, const void *buf, size_t count){
         addr[cur_pos + i] = dst[i];
         ++i;
     }
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
     return count;
 }
 
 int mkdir(const char *pathname){
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     char** paths;
     int count = split_path(pathname, &paths);
 
@@ -372,11 +373,11 @@ int mkdir(const char *pathname){
     mem_free_memory(paths, count);
 
     if (node_ == NULL){
-        spin_unlock(&lock);
+        spin_unlock_irqrestore(&lock, enable);
         return -1;
     }
 
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
     return 0;
 }
 
@@ -385,13 +386,14 @@ node_t * get_root(){
 }
 
 node_t* readdir(node_t* cur_node){
-    spin_lock(&lock);
+    int enable = spin_lock_irqsave(&lock);
     if (cur_node == NULL){
+        spin_unlock_irqrestore(&lock, enable);
         return NULL;
     }
     printf("%s\n", cur_node->name);
     node_t* next = cur_node->next;
-    spin_unlock(&lock);
+    spin_unlock_irqrestore(&lock, enable);
     return next;
 }
 
