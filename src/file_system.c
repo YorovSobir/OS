@@ -361,8 +361,9 @@ int write(int fd, const void *buf, size_t count){
     // }
 
     size_t i = size;
+    // (size - cur_pos) + cur_pos + count (+1)
     if (cur_pos + count >= i)
-        i = cur_pos + count + 1;
+        i = size + count + 1;
 
     if (i > size){
         size = i;
@@ -372,7 +373,7 @@ int write(int fd, const void *buf, size_t count){
             return -1;
         }
         fnode->addr = (void*)newbuf;
-        fnode->size = i;
+        fnode->size = size;
     }
 
     char* addr = (char*)fnode->addr;
