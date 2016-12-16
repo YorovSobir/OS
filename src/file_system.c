@@ -267,12 +267,19 @@ int open(const char *pathname, int flags){
     char** paths;
     int count = split_path(pathname, &paths);
 
-    node_t *fnode;
-    if (flags == F_READ){
-        fnode = get_node(paths, count, FILE_);
-    }
-    if (flags == F_WRITE){
-        fnode = create_node(paths, count, FILE_);
+    node_t *fnode = get_node(paths, count, FILE_);
+
+    if (fnode == NULL) {
+
+        if (flags == F_READ){
+            printf("Cannot open file to read\n");
+            spin_unlock_irqrestore(&lock, enable);
+            return -1;
+        }
+
+        if (flags == F_WRITE){
+            fnode = create_node(paths, count, FILE_);
+        }
     }
 
     mem_free_memory(paths, count);
@@ -316,11 +323,12 @@ int read(int fd, void *buf, size_t count){
     char* dst = (char*) buf;
 
     size_t i = 0;
-    while (cur_pos < size && i < count){
-        dst[i] = addr[i];
-        ++cur_pos;
+    // предполагается что размер dst >= count
+    while (((cur_pos + i) < size) && (i < count)){
+        dst[i] = addr[i + cur_pos];
         ++i;
     }
+
     dst[i] = '\0';
     spin_unlock_irqrestore(&lock, enable);
     return cur_pos - start;
@@ -340,14 +348,23 @@ int write(int fd, const void *buf, size_t count){
     size_t cur_pos = start;
     size_t size = fnode->size;
 
+
+    // while (cur_pos + count >= i) {
+        // ++i;
+    // }
+
     size_t i = size;
-    while (cur_pos + count >= i) {
-        ++i;
-    }
+    if (cur_pos + count >= i)
+        i = cur_pos + count + 1;
 
     if (i > size){
         size = i;
-        fnode->addr = (char*) mem_realloc(fnode->addr, i);
+        char *newbuf = (char*) mem_realloc(fnode->addr, size);
+        if (!newbuf){
+            printf("cannot realloc to write\n");
+            return -1;
+        }
+        fnode->addr = newbuf;
         fnode->size = i;
     }
 
