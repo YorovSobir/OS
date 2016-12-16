@@ -316,22 +316,27 @@ int read(int fd, void *buf, size_t count){
         return -1;
     }
 
-    char* addr = fnode->addr;
+    char* addr = (char*)fnode->addr;
     size_t start = desc[fd].current_pos;
     size_t cur_pos = start;
     size_t size = fnode->size;
     char* dst = (char*) buf;
 
-    size_t i = 0;
     // предполагается что размер dst >= count
-    while (((cur_pos + i) < size) && (i < count)){
-        dst[i] = addr[i + cur_pos];
-        ++i;
-    }
+    size_t new_count = count + cur_pos > size ? (size - cur_pos) : count;
 
-    dst[i] = '\0';
+    memcpy(dst, addr + cur_pos, new_count);
+
+    // while (((cur_pos + i) < size) && (i < count)){
+    //     dst[i] = addr[i + cur_pos];
+    //     ++i;
+    // }
+
+    dst[new_count] = '\0';
+
+    desc[fd].current_pos = cur_pos + new_count;
     spin_unlock_irqrestore(&lock, enable);
-    return cur_pos - start;
+    return new_count;
 }
 
 int write(int fd, const void *buf, size_t count){
@@ -364,18 +369,21 @@ int write(int fd, const void *buf, size_t count){
             printf("cannot realloc to write\n");
             return -1;
         }
-        fnode->addr = newbuf;
+        fnode->addr = (void*)newbuf;
         fnode->size = i;
     }
 
-    char* addr = fnode->addr;
+    char* addr = (char*)fnode->addr;
     const char* dst = (char*)buf;
 
-    i = 0;
-    while (i < count){
-        addr[cur_pos + i] = dst[i];
-        ++i;
-    }
+    // i = 0;
+    memcpy(addr + cur_pos, dst, count);
+    // while (i < count){
+    //     addr[cur_pos + i] = dst[i];
+    //     ++i;
+    // }
+
+    desc[fd].current_pos = count + cur_pos;
     spin_unlock_irqrestore(&lock, enable);
     return count;
 }
@@ -413,4 +421,3 @@ node_t* readdir(node_t* cur_node){
     spin_unlock_irqrestore(&lock, enable);
     return next;
 }
-
