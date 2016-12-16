@@ -101,7 +101,7 @@ static int split_path(const char* pathname, char*** res){
 
     const char* temp = pathname;
     const char* temp1 = pathname;
-    int count = 1;
+    int count = 0;
     int maxlen = 0;
 
     while (*temp){
@@ -114,7 +114,9 @@ static int split_path(const char* pathname, char*** res){
         }
         ++temp;
     }
-
+    if (*(temp - 1) != '/'){
+            ++count;
+    }
     if (temp - temp1 > maxlen){
         maxlen = temp - temp1;
     }
@@ -142,7 +144,9 @@ static int split_path(const char* pathname, char*** res){
         ++j;
         ++temp;
     }
-    res_temp[i][j] = '\0';
+    if (*(temp - 1) != '/'){
+        res_temp[i][j] = '\0';
+    }
 
     *res = res_temp;
     return count;
@@ -331,8 +335,6 @@ int read(int fd, void *buf, size_t count){
     //     dst[i] = addr[i + cur_pos];
     //     ++i;
     // }
-
-    dst[new_count] = '\0';
 
     desc[fd].current_pos = cur_pos + new_count;
     spin_unlock_irqrestore(&lock, enable);
