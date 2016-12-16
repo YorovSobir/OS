@@ -361,9 +361,9 @@ int write(int fd, const void *buf, size_t count){
     // }
 
     size_t i = size;
-    // (size - cur_pos) + cur_pos + count (+1)
-    if (cur_pos + count >= i)
-        i = size + count + 1;
+
+    if (cur_pos + count > i)
+        i = cur_pos + count;
 
     if (i > size){
         size = i;
